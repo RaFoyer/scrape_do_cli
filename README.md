@@ -121,6 +121,12 @@ sdo --async-base-url https://your-async-host async status <job_id>
 export SCRAPEDO_ASYNC_BASE_URL=https://your-async-host
 ```
 
+## Contributor Docs
+
+- [CONTRIBUTING.md](CONTRIBUTING.md)
+- [Endpoint Coverage](docs/ENDPOINT_COVERAGE.md)
+- [SUPPORT.md](SUPPORT.md)
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md).
