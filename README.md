@@ -100,3 +100,15 @@ or set:
 ```bash
 export SCRAPEDO_ASYNC_BASE_URL=https://your-async-host
 ```
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development workflow, PR expectations, and testing requirements.
+
+## Security
+
+See [SECURITY.md](SECURITY.md) for private vulnerability reporting.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
