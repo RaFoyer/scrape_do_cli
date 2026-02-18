@@ -29,8 +29,11 @@ make build
 
 ```bash
 make fmt
+make lint
 make test
+make test-cover
 make build
+make ci
 ```
 
 ## Project Layout

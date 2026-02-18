@@ -6,6 +6,16 @@ on:
   pull_request:
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.23.x'
+      - name: Lint (fmt, vet, staticcheck)
+        run: make lint
+
   test:
     runs-on: ubuntu-latest
     steps:
@@ -14,6 +24,20 @@ jobs:
         with:
           go-version: '1.23.x'
       - name: Test
-        run: go test ./...
+        run: go test -covermode=atomic -coverprofile=coverage.out ./...
+      - name: Coverage Summary
+        run: |
+          go tool cover -func=coverage.out | tee coverage.txt
+          total="$(tail -n 1 coverage.txt | awk '{print $3}')"
+          {
+            echo "## Coverage"
+            echo ""
+            echo "- Total: \`${total}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage.out
+          path: coverage.out
       - name: Build
         run: go build ./cmd/sdo
