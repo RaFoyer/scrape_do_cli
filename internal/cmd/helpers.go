@@ -95,6 +95,9 @@ func writeResponse(ctx context.Context, response *client.APIResponse, extra map[
 	if outfmt.IsJSON(ctx) {
 		return outfmt.WriteJSON(ctx, os.Stdout, payload)
 	}
+	if outfmt.IsPlain(ctx) {
+		return writePlainResponse(response, extra)
+	}
 
 	fmt.Fprintf(os.Stdout, "status_code\t%d\n", response.StatusCode)
 	if len(response.SDOHeaders) > 0 {
@@ -122,6 +125,43 @@ func writeResponse(ctx context.Context, response *client.APIResponse, extra map[
 		fmt.Fprintln(os.Stdout, string(b))
 	}
 	return nil
+}
+
+func writePlainResponse(response *client.APIResponse, extra map[string]any) error {
+	if response == nil {
+		return nil
+	}
+	fmt.Fprintf(os.Stdout, "status_code\t%d\n", response.StatusCode)
+	if len(extra) > 0 {
+		keys := make([]string, 0, len(extra))
+		for k := range extra {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		for _, k := range keys {
+			fmt.Fprintf(os.Stdout, "%s\t%s\n", k, plainEncode(extra[k]))
+		}
+	}
+	if len(response.SDOHeaders) > 0 {
+		keys := make([]string, 0, len(response.SDOHeaders))
+		for k := range response.SDOHeaders {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		for _, k := range keys {
+			fmt.Fprintf(os.Stdout, "sdo_headers.%s\t%s\n", k, plainEncode(response.SDOHeaders[k]))
+		}
+	}
+	fmt.Fprintf(os.Stdout, "content\t%s\n", plainEncode(response.Body))
+	return nil
+}
+
+func plainEncode(v any) string {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return fmt.Sprintf("%q", fmt.Sprintf("%v", v))
+	}
+	return string(b)
 }
 
 func extractStatus(v any) string {

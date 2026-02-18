@@ -36,7 +36,7 @@ func (c *DocsCmd) Run(ctx context.Context) error {
 			"sdo info --json",
 			"sdo scrape https://example.com --geo us --render",
 			"sdo scrape https://example.com --method POST --body '{\"q\":\"x\"}' --content-type application/json",
-			"sdo scrape https://example.com --pure-cookies",
+			"sdo scrape 'https://httpbin.co/cookies/set?foo=bar' --pure-cookies",
 			"sdo scrape https://example.com --render --width 1366 --height 768",
 			"sdo scrape https://example.com --play-with-browser '[{\"Action\":\"WaitSelector\",\"WaitSelector\":\"body\"}]' --return-json",
 			"sdo plugin run amazon/pdp --param asin=B08N5WRWNW --param geocode=us --param zipcode=10001",

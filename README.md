@@ -96,6 +96,7 @@ Machine output:
 ```bash
 sdo --json scrape https://example.com --results-only
 sdo --json scrape https://example.com --select status_code,sdo_headers.scrape.do-request-cost
+sdo --plain plugin run amazon/pdp --param asin=B08N5WRWNW --param geocode=us --param zipcode=10001
 ```
 
 ## Config keys

@@ -49,5 +49,14 @@ func (c *PluginRunCmd) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	return writeResponse(ctx, resp, map[string]any{"plugin_path": c.PluginPath, "url": c.URL})
+	return writeResponse(ctx, resp, pluginResponseMeta(c.PluginPath, c.URL))
+}
+
+func pluginResponseMeta(pluginPath string, url string) map[string]any {
+	meta := map[string]any{"plugin_path": pluginPath}
+	url = strings.TrimSpace(url)
+	if url != "" {
+		meta["url"] = url
+	}
+	return meta
 }
