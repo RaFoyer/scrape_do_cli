@@ -119,9 +119,7 @@ func (c *Client) Info(ctx context.Context) (*APIResponse, error) {
 func (c *Client) PluginRun(ctx context.Context, req PluginRequest) (*APIResponse, error) {
 	pluginPath := strings.TrimSpace(req.PluginPath)
 	pluginPath = strings.TrimPrefix(pluginPath, "/")
-	if strings.HasPrefix(pluginPath, "plugin/") {
-		pluginPath = strings.TrimPrefix(pluginPath, "plugin/")
-	}
+	pluginPath = strings.TrimPrefix(pluginPath, "plugin/")
 	if pluginPath == "" {
 		return nil, fmt.Errorf("empty plugin path")
 	}

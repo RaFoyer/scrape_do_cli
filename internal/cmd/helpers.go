@@ -81,18 +81,6 @@ func parseHeaders(items []string) (map[string]string, error) {
 	return out, nil
 }
 
-func writePayload(ctx context.Context, payload any) error {
-	if outfmt.IsJSON(ctx) {
-		return outfmt.WriteJSON(ctx, os.Stdout, payload)
-	}
-	b, err := json.MarshalIndent(payload, "", "  ")
-	if err != nil {
-		return fmt.Errorf("encode output: %w", err)
-	}
-	fmt.Fprintln(os.Stdout, string(b))
-	return nil
-}
-
 func writeResponse(ctx context.Context, response *client.APIResponse, extra map[string]any) error {
 	payload := map[string]any{
 		"status_code": response.StatusCode,
