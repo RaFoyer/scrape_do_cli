@@ -34,6 +34,7 @@ type ScrapeRequest struct {
 	DisableRedirection    bool
 	DisableRetry          bool
 	TransparentResponse   bool
+	PureCookies           bool
 	RequestTimeoutMS      int
 	RetryTimeoutMS        int
 	WaitUntil             string

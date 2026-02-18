@@ -59,6 +59,7 @@ func (c *Client) Scrape(ctx context.Context, req ScrapeRequest) (*APIResponse, e
 	addOptionalBool(params, "disableRedirection", req.DisableRedirection)
 	addOptionalBool(params, "disableRetry", req.DisableRetry)
 	addOptionalBool(params, "transparentResponse", req.TransparentResponse)
+	addOptionalBool(params, "pureCookies", req.PureCookies)
 	addOptionalBool(params, "blockResources", req.BlockResources)
 	addOptionalBool(params, "screenShot", req.Screenshot)
 	addOptionalBool(params, "fullScreenShot", req.FullScreenshot)
@@ -126,7 +127,9 @@ func (c *Client) PluginRun(ctx context.Context, req PluginRequest) (*APIResponse
 
 	params := map[string]string{
 		"token": c.token,
-		"url":   req.URL,
+	}
+	if strings.TrimSpace(req.URL) != "" {
+		params["url"] = req.URL
 	}
 	mergeParams(params, req.Params)
 

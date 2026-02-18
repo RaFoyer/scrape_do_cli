@@ -24,6 +24,9 @@ func TestScrape(t *testing.T) {
 		if q.Get("render") != "true" || q.Get("super") != "true" {
 			t.Fatalf("query=%v", q)
 		}
+		if q.Get("pureCookies") != "true" {
+			t.Fatalf("query=%v", q)
+		}
 		if q.Get("customHeaders") != "true" || q.Get("extraHeaders") != "true" {
 			t.Fatalf("query=%v", q)
 		}
@@ -57,6 +60,7 @@ func TestScrape(t *testing.T) {
 		ContentType:   "application/json",
 		Render:        true,
 		Super:         true,
+		PureCookies:   true,
 		CustomHeaders: true,
 		SetCookies:    map[string]string{"session": "abc"},
 		Params:        map[string]string{"foo": "bar"},
@@ -105,10 +109,15 @@ func TestInfoAndPluginRun(t *testing.T) {
 			}
 			_, _ = w.Write([]byte(`{"IsActive":true}`))
 		case r.URL.Path == "/plugin/amazon/pdp":
-			if r.URL.Query().Get("token") != "tok" || r.URL.Query().Get("url") == "" {
+			if r.URL.Query().Get("token") != "tok" || r.URL.Query().Get("url") != "" {
 				t.Fatalf("plugin query=%v", r.URL.Query())
 			}
 			_, _ = w.Write([]byte(`{"product":"ok"}`))
+		case r.URL.Path == "/plugin/generic/path":
+			if r.URL.Query().Get("token") != "tok" || r.URL.Query().Get("url") == "" {
+				t.Fatalf("plugin query=%v", r.URL.Query())
+			}
+			_, _ = w.Write([]byte(`{"ok":true}`))
 		default:
 			t.Fatalf("unexpected path=%s", r.URL.Path)
 		}
@@ -124,12 +133,19 @@ func TestInfoAndPluginRun(t *testing.T) {
 		t.Fatalf("status=%d", info.StatusCode)
 	}
 
-	plugin, err := c.PluginRun(context.Background(), PluginRequest{PluginPath: "amazon/pdp", URL: "https://example.com"})
+	plugin, err := c.PluginRun(context.Background(), PluginRequest{PluginPath: "amazon/pdp"})
 	if err != nil {
 		t.Fatalf("PluginRun: %v", err)
 	}
 	if plugin.StatusCode != 200 {
 		t.Fatalf("status=%d", plugin.StatusCode)
+	}
+	pluginWithURL, err := c.PluginRun(context.Background(), PluginRequest{PluginPath: "generic/path", URL: "https://example.com"})
+	if err != nil {
+		t.Fatalf("PluginRun with URL: %v", err)
+	}
+	if pluginWithURL.StatusCode != 200 {
+		t.Fatalf("status=%d", pluginWithURL.StatusCode)
 	}
 }
 

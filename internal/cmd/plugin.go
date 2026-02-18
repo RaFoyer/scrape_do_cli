@@ -13,7 +13,7 @@ type PluginCmd struct {
 
 type PluginRunCmd struct {
 	PluginPath string   `arg:"" name:"plugin_path" help:"Plugin endpoint path (e.g. amazon/pdp)"`
-	URL        string   `name:"url" help:"Target URL for the plugin" required:""`
+	URL        string   `name:"url" help:"Target URL for plugins that require URL input"`
 	Param      []string `name:"param" help:"Additional plugin query param (key=value)"`
 	Header     []string `name:"header" help:"Header passed to Scrape.do request, format: 'Key: Value'"`
 	SDHeader   []string `name:"sd-header" help:"Forwarded website header, format: 'Key: Value' (auto-prefixed with sd-)"`
@@ -25,9 +25,6 @@ func (c *PluginRunCmd) Run(ctx context.Context) error {
 	}
 	if strings.TrimSpace(c.PluginPath) == "" {
 		return usage("missing plugin_path")
-	}
-	if strings.TrimSpace(c.URL) == "" {
-		return usage("missing --url")
 	}
 	params, err := parseParams(c.Param)
 	if err != nil {
