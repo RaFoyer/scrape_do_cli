@@ -1,6 +1,13 @@
 package cmd
 
-import "testing"
+import (
+	"io"
+	"os"
+	"strings"
+	"testing"
+
+	"github.com/ra/scrape_do_cli/internal/client"
+)
 
 func TestParseParams(t *testing.T) {
 	params, err := parseParams([]string{"a=1", "b=2"})
@@ -51,4 +58,52 @@ func TestStatusHelpers(t *testing.T) {
 	if !isTerminalStatus("error") || !isFailureStatus("error") {
 		t.Fatalf("unexpected status evaluation")
 	}
+}
+
+func TestWritePlainResponse(t *testing.T) {
+	resp := &client.APIResponse{
+		StatusCode: 200,
+		Body:       map[string]any{"ok": true},
+		SDOHeaders: map[string]string{"scrape.do-request-cost": "1"},
+	}
+	extra := map[string]any{"plugin_path": "amazon/pdp"}
+	out := captureStdout(t, func() {
+		if err := writePlainResponse(resp, extra); err != nil {
+			t.Fatalf("writePlainResponse: %v", err)
+		}
+	})
+	if !strings.Contains(out, "status_code\t200\n") {
+		t.Fatalf("output=%q", out)
+	}
+	if !strings.Contains(out, "plugin_path\t\"amazon/pdp\"\n") {
+		t.Fatalf("output=%q", out)
+	}
+	if !strings.Contains(out, "sdo_headers.scrape.do-request-cost\t\"1\"\n") {
+		t.Fatalf("output=%q", out)
+	}
+	if !strings.Contains(out, "content\t{\"ok\":true}\n") {
+		t.Fatalf("output=%q", out)
+	}
+}
+
+func captureStdout(t *testing.T, fn func()) string {
+	t.Helper()
+	orig := os.Stdout
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("pipe: %v", err)
+	}
+	os.Stdout = w
+	defer func() { os.Stdout = orig }()
+
+	fn()
+
+	if err := w.Close(); err != nil {
+		t.Fatalf("close writer: %v", err)
+	}
+	b, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("read pipe: %v", err)
+	}
+	return string(b)
 }

@@ -8,6 +8,8 @@ BIN_DIR := $(CURDIR)/bin
 BIN := $(BIN_DIR)/sdo
 CMD := ./cmd/sdo
 GO ?= go
+GOFMT ?= $(shell $(GO) env GOROOT 2>/dev/null)/bin/gofmt
+STATICCHECK_VERSION ?= v0.6.1
 
 VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 COMMIT := $(shell git rev-parse --short=12 HEAD 2>/dev/null || echo "")
@@ -29,10 +31,10 @@ test-cover:
 	@$(GO) tool cover -func=coverage.out | tail -n 1
 
 fmt:
-	@gofmt -w .
+	@$(GOFMT) -w .
 
 fmt-check:
-	@out="$$(gofmt -l .)"; \
+	@out="$$($(GOFMT) -l .)"; \
 	if [ -n "$$out" ]; then \
 		echo "gofmt required for:"; \
 		echo "$$out"; \
@@ -44,9 +46,12 @@ vet:
 
 staticcheck:
 	@PATH="$$($(GO) env GOPATH)/bin:$$PATH"; \
-	if ! command -v staticcheck >/dev/null 2>&1; then \
-		echo "installing staticcheck..."; \
-		$(GO) install honnef.co/go/tools/cmd/staticcheck@latest; \
+	want="$(STATICCHECK_VERSION)"; \
+	want="$${want#v}"; \
+	have="$$(staticcheck -version 2>/dev/null || true)"; \
+	if ! command -v staticcheck >/dev/null 2>&1 || ! echo "$$have" | grep -q "$$want"; then \
+		echo "installing staticcheck $(STATICCHECK_VERSION)..."; \
+		$(GO) install honnef.co/go/tools/cmd/staticcheck@$(STATICCHECK_VERSION); \
 	fi; \
 	staticcheck ./...
 
