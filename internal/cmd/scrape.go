@@ -41,6 +41,7 @@ type ScrapeCmd struct {
 	DisableRedirection   bool     `name:"disable-redirection" help:"Disable following redirects"`
 	DisableRetry         bool     `name:"disable-retry" help:"Disable automatic retries"`
 	TransparentResponse  bool     `name:"transparent-response" help:"Return full target response without status validation"`
+	PureCookies          bool     `name:"pure-cookies" help:"Return only target cookies in response body"`
 	RequestTimeoutMS     int      `name:"request-timeout-ms" help:"Scrape.do target timeout in milliseconds"`
 	RetryTimeoutMS       int      `name:"retry-timeout-ms" help:"Retry timeout in milliseconds"`
 	CustomHeaders        bool     `name:"custom-headers" help:"Treat --header entries as complete custom target headers"`
@@ -140,6 +141,7 @@ func (c *ScrapeCmd) Run(ctx context.Context) error {
 		DisableRedirection:    c.DisableRedirection,
 		DisableRetry:          c.DisableRetry,
 		TransparentResponse:   c.TransparentResponse,
+		PureCookies:           c.PureCookies,
 		RequestTimeoutMS:      c.RequestTimeoutMS,
 		RetryTimeoutMS:        c.RetryTimeoutMS,
 		CustomHeaders:         customHeaders,

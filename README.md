@@ -45,6 +45,7 @@ Sync scrape:
 sdo scrape https://httpbin.co/anything --geo us
 sdo scrape https://httpbin.co/anything --render --wait-until domcontentloaded
 sdo scrape https://httpbin.co/anything --method POST --body '{"hello":"world"}' --content-type application/json
+sdo scrape https://httpbin.co/cookies --pure-cookies
 sdo scrape https://example.com --render --width 1366 --height 768
 sdo scrape https://example.com --play-with-browser '[{"Action":"WaitSelector","WaitSelector":"body"}]' --return-json
 ```
@@ -59,11 +60,14 @@ sdo scrape https://httpbin.co/anything --set-cookie session=abc123
 Plugin run:
 
 ```bash
+# Plugin that uses URL input
+sdo plugin run some-plugin/path --url https://example.com --param key=value
+
+# Amazon plugin style (parameter-only)
 sdo plugin run amazon/pdp \
-  --url https://www.amazon.com/dp/B08N5WRWNW \
   --param asin=B08N5WRWNW \
   --param geocode=us \
-  --param countryName='United States'
+  --param zipcode=10001
 ```
 
 Async:

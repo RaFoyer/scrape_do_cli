@@ -6,11 +6,12 @@ This document maps `sdo` commands to the Scrape.do API surface.
 
 - `sdo scrape <url>`
   - Endpoint: `GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS /`
-  - Core options: proxy/geo/session/device, render controls, headers/cookies, retry/timeouts, output modes.
+  - Core options: proxy/geo/session/device, render controls, headers/cookies, retry/timeouts, output modes, `pureCookies`.
 - `sdo info`
   - Endpoint: `GET /info`
-- `sdo plugin run <plugin_path> --url <url>`
+- `sdo plugin run <plugin_path> [--url <url>]`
   - Endpoint: `GET /plugin/{plugin_path}`
+  - `--url` is optional because some plugin endpoints are parameter-only.
 
 ## Async API (`https://q.scrape.do`)
 
