@@ -36,6 +36,12 @@ var (
 )
 
 func Dir() (string, error) {
+	if v := strings.TrimSpace(os.Getenv("SCRAPEDO_CONFIG_DIR")); v != "" {
+		return v, nil
+	}
+	if v := strings.TrimSpace(os.Getenv("SCRAPEDO_CONFIG_HOME")); v != "" {
+		return filepath.Join(v, AppName), nil
+	}
 	base, err := os.UserConfigDir()
 	if err != nil {
 		return "", fmt.Errorf("resolve user config dir: %w", err)

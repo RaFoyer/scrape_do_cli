@@ -57,7 +57,7 @@ func TestParseKey(t *testing.T) {
 }
 
 func TestReadWriteConfig(t *testing.T) {
-	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	t.Setenv("SCRAPEDO_CONFIG_DIR", t.TempDir())
 	cfg := File{Token: "abc", BaseURL: "https://api.scrape.do", TimeoutMS: 1000}
 	if err := WriteConfig(cfg); err != nil {
 		t.Fatalf("WriteConfig: %v", err)

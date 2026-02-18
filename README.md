@@ -86,6 +86,7 @@ sdo --json scrape https://example.com --select status_code,sdo_headers.scrape.do
 - `SCRAPEDO_TIMEOUT`
 - `SCRAPEDO_JSON`
 - `SCRAPEDO_PLAIN`
+- `SCRAPEDO_CONFIG_DIR` (optional override for config file directory)
 
 ## Async host override
 
