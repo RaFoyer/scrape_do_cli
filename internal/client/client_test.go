@@ -14,6 +14,9 @@ func TestScrape(t *testing.T) {
 		if r.URL.Path != "/" {
 			t.Fatalf("path=%s", r.URL.Path)
 		}
+		if r.Method != http.MethodPost {
+			t.Fatalf("method=%s", r.Method)
+		}
 		q := r.URL.Query()
 		if q.Get("token") != "tok" || q.Get("url") != "https://example.com" {
 			t.Fatalf("query=%v", q)
@@ -21,10 +24,10 @@ func TestScrape(t *testing.T) {
 		if q.Get("render") != "true" || q.Get("super") != "true" {
 			t.Fatalf("query=%v", q)
 		}
-		if q.Get("foo") != "bar" {
+		if q.Get("customHeaders") != "true" || q.Get("extraHeaders") != "true" {
 			t.Fatalf("query=%v", q)
 		}
-		if q.Get("extraHeaders") != "true" {
+		if q.Get("setCookies") != "session=abc;" {
 			t.Fatalf("query=%v", q)
 		}
 		if r.Header.Get("X-Test") != "1" {
@@ -33,6 +36,14 @@ func TestScrape(t *testing.T) {
 		if r.Header.Get("sd-A") != "B" {
 			t.Fatalf("header=%v", r.Header)
 		}
+		if r.Header.Get("content-type") != "application/json" {
+			t.Fatalf("header=%v", r.Header)
+		}
+		b := make([]byte, 64)
+		n, _ := r.Body.Read(b)
+		if !strings.Contains(string(b[:n]), `"hello":"world"`) {
+			t.Fatalf("body=%q", string(b[:n]))
+		}
 		w.Header().Set("scrape.do-request-cost", "1")
 		_, _ = w.Write([]byte(`{"ok":true}`))
 	}))
@@ -40,12 +51,17 @@ func TestScrape(t *testing.T) {
 
 	c := New(Options{Token: "tok", BaseURL: ts.URL, AsyncBaseURL: ts.URL})
 	resp, err := c.Scrape(context.Background(), ScrapeRequest{
-		URL:       "https://example.com",
-		Render:    true,
-		Super:     true,
-		Params:    map[string]string{"foo": "bar"},
-		Headers:   map[string]string{"X-Test": "1"},
-		SDHeaders: map[string]string{"A": "B"},
+		Method:        "POST",
+		URL:           "https://example.com",
+		Body:          `{"hello":"world"}`,
+		ContentType:   "application/json",
+		Render:        true,
+		Super:         true,
+		CustomHeaders: true,
+		SetCookies:    map[string]string{"session": "abc"},
+		Params:        map[string]string{"foo": "bar"},
+		Headers:       map[string]string{"X-Test": "1"},
+		SDHeaders:     map[string]string{"A": "B"},
 	})
 	if err != nil {
 		t.Fatalf("Scrape: %v", err)
@@ -99,23 +115,31 @@ func TestInfoAndPluginRun(t *testing.T) {
 	}
 }
 
-func TestAsyncSubmitAndStatus(t *testing.T) {
+func TestAsyncEndpoints(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Header.Get("x-api-key") != "tok" {
+		if r.Header.Get("X-Token") != "tok" {
 			t.Fatalf("header=%v", r.Header)
 		}
 		switch {
-		case r.Method == http.MethodPost && r.URL.Path == "/job":
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/jobs":
 			var payload map[string]any
 			if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
 				t.Fatalf("decode payload: %v", err)
 			}
-			if payload["url"] != "https://example.com" {
+			if _, ok := payload["Targets"].([]any); !ok {
 				t.Fatalf("payload=%v", payload)
 			}
-			_, _ = w.Write([]byte(`{"job_id":"1","status":"queued"}`))
-		case r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/job/"):
-			_, _ = w.Write([]byte(`{"job_id":"1","status":"completed"}`))
+			_, _ = w.Write([]byte(`{"JobID":"1","Status":"pending"}`))
+		case r.Method == http.MethodGet && r.URL.Path == "/api/v1/jobs":
+			_, _ = w.Write([]byte(`{"Jobs":[]}`))
+		case r.Method == http.MethodGet && r.URL.Path == "/api/v1/jobs/1":
+			_, _ = w.Write([]byte(`{"JobID":"1","Status":"completed"}`))
+		case r.Method == http.MethodGet && r.URL.Path == "/api/v1/jobs/1/2":
+			_, _ = w.Write([]byte(`{"TaskID":"2","Status":"completed"}`))
+		case r.Method == http.MethodDelete && r.URL.Path == "/api/v1/jobs/1":
+			_, _ = w.Write([]byte(`{"Status":"canceled"}`))
+		case r.Method == http.MethodGet && r.URL.Path == "/api/v1/me":
+			_, _ = w.Write([]byte(`{"TotalConcurrency":1}`))
 		default:
 			t.Fatalf("unexpected %s %s", r.Method, r.URL.Path)
 		}
@@ -123,19 +147,23 @@ func TestAsyncSubmitAndStatus(t *testing.T) {
 	defer ts.Close()
 	c := New(Options{Token: "tok", BaseURL: ts.URL, AsyncBaseURL: ts.URL})
 
-	submit, err := c.AsyncSubmit(context.Background(), AsyncSubmitRequest{URL: "https://example.com", Render: true})
-	if err != nil {
-		t.Fatalf("AsyncSubmit: %v", err)
+	if _, err := c.AsyncCreateJob(context.Background(), AsyncCreateJobRequest{Targets: []string{"https://example.com"}, Render: true}); err != nil {
+		t.Fatalf("AsyncCreateJob: %v", err)
 	}
-	if submit.StatusCode != 200 {
-		t.Fatalf("status=%d", submit.StatusCode)
+	if _, err := c.AsyncListJobs(context.Background(), 1, 10); err != nil {
+		t.Fatalf("AsyncListJobs: %v", err)
 	}
-	status, err := c.AsyncStatus(context.Background(), "1")
-	if err != nil {
-		t.Fatalf("AsyncStatus: %v", err)
+	if _, err := c.AsyncGetJob(context.Background(), "1"); err != nil {
+		t.Fatalf("AsyncGetJob: %v", err)
 	}
-	if status.StatusCode != 200 {
-		t.Fatalf("status=%d", status.StatusCode)
+	if _, err := c.AsyncGetTask(context.Background(), "1", "2"); err != nil {
+		t.Fatalf("AsyncGetTask: %v", err)
+	}
+	if _, err := c.AsyncCancelJob(context.Background(), "1"); err != nil {
+		t.Fatalf("AsyncCancelJob: %v", err)
+	}
+	if _, err := c.AsyncMe(context.Background()); err != nil {
+		t.Fatalf("AsyncMe: %v", err)
 	}
 }
 

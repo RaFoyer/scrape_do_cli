@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"sort"
 	"strings"
@@ -18,7 +19,7 @@ func newClientFromContext(ctx context.Context) *client.Client {
 		Token:        runtime.Token,
 		BaseURL:      runtime.BaseURL,
 		AsyncBaseURL: runtime.AsyncBaseURL,
-		HTTPClient:   nil,
+		HTTPClient:   &http.Client{Timeout: runtime.Timeout},
 	})
 }
 
@@ -31,6 +32,14 @@ func requireToken(ctx context.Context) error {
 }
 
 func parseParams(items []string) (map[string]string, error) {
+	return parseKeyValueItems("--param", items)
+}
+
+func parseCookies(items []string) (map[string]string, error) {
+	return parseKeyValueItems("--set-cookie", items)
+}
+
+func parseKeyValueItems(flagName string, items []string) (map[string]string, error) {
 	out := map[string]string{}
 	for _, item := range items {
 		item = strings.TrimSpace(item)
@@ -39,12 +48,12 @@ func parseParams(items []string) (map[string]string, error) {
 		}
 		parts := strings.SplitN(item, "=", 2)
 		if len(parts) != 2 {
-			return nil, usagef("invalid --param %q (expected key=value)", item)
+			return nil, usagef("invalid %s %q (expected key=value)", flagName, item)
 		}
 		k := strings.TrimSpace(parts[0])
 		v := strings.TrimSpace(parts[1])
 		if k == "" {
-			return nil, usagef("invalid --param %q (empty key)", item)
+			return nil, usagef("invalid %s %q (empty key)", flagName, item)
 		}
 		out[k] = v
 	}
@@ -132,7 +141,7 @@ func extractStatus(v any) string {
 	if !ok {
 		return ""
 	}
-	for _, key := range []string{"status", "state", "job_status"} {
+	for _, key := range []string{"status", "state", "job_status", "Status", "State", "JobStatus"} {
 		if s, ok := m[key].(string); ok {
 			s = strings.TrimSpace(strings.ToLower(s))
 			if s != "" {
@@ -156,7 +165,7 @@ func extractStatus(v any) string {
 
 func isTerminalStatus(status string) bool {
 	switch strings.TrimSpace(strings.ToLower(status)) {
-	case "done", "completed", "success", "succeeded", "failed", "error", "cancelled", "canceled":
+	case "done", "completed", "success", "succeeded", "failed", "error", "cancelled", "canceled", "finished":
 		return true
 	default:
 		return false

@@ -17,18 +17,39 @@ type Client struct {
 }
 
 type ScrapeRequest struct {
-	URL         string
-	Render      bool
-	Super       bool
-	Geo         string
-	RegionalGeo string
-	SessionID   string
-	Device      string
-	Output      string
-	Callback    string
-	Params      map[string]string
-	Headers     map[string]string
-	SDHeaders   map[string]string
+	Method                string
+	URL                   string
+	Body                  string
+	ContentType           string
+	Render                bool
+	Super                 bool
+	Geo                   string
+	RegionalGeo           string
+	SessionID             string
+	Device                string
+	Output                string
+	Callback              string
+	CustomHeaders         bool
+	ForwardHeaders        bool
+	DisableRedirection    bool
+	DisableRetry          bool
+	TransparentResponse   bool
+	RequestTimeoutMS      int
+	RetryTimeoutMS        int
+	WaitUntil             string
+	CustomWait            int
+	WaitSelector          string
+	BlockResources        bool
+	Screenshot            bool
+	FullScreenshot        bool
+	ParticularScreenshot  string
+	ReturnJSON            bool
+	ShowWebsocketRequests bool
+	ShowFrames            bool
+	SetCookies            map[string]string
+	Params                map[string]string
+	Headers               map[string]string
+	SDHeaders             map[string]string
 }
 
 type PluginRequest struct {
@@ -39,17 +60,38 @@ type PluginRequest struct {
 	SDHeaders  map[string]string
 }
 
-type AsyncSubmitRequest struct {
-	URL         string
-	Render      bool
-	Super       bool
-	Geo         string
-	RegionalGeo string
-	SessionID   string
-	Device      string
-	Output      string
-	Callback    string
-	Params      map[string]string
+type AsyncCreateJobRequest struct {
+	Targets               []string
+	Method                string
+	Body                  string
+	GeoCode               string
+	RegionalGeoCode       string
+	Super                 bool
+	Headers               map[string]string
+	ForwardHeaders        bool
+	SessionID             string
+	Device                string
+	SetCookies            map[string]string
+	Timeout               int
+	RetryTimeout          int
+	DisableRetry          bool
+	TransparentResponse   bool
+	DisableRedirection    bool
+	Output                string
+	Render                bool
+	WaitUntil             string
+	CustomWait            int
+	WaitSelector          string
+	BlockResources        bool
+	ReturnJSON            bool
+	ShowWebsocketRequests bool
+	ShowFrames            bool
+	Screenshot            bool
+	FullScreenshot        bool
+	ParticularScreenshot  string
+	WebhookURL            string
+	WebhookHeaders        map[string]string
+	Params                map[string]string
 }
 
 type APIResponse struct {

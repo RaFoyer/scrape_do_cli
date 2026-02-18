@@ -15,6 +15,19 @@ func TestParseParams(t *testing.T) {
 	}
 }
 
+func TestParseCookies(t *testing.T) {
+	cookies, err := parseCookies([]string{"session=abc", "k=v"})
+	if err != nil {
+		t.Fatalf("parseCookies: %v", err)
+	}
+	if cookies["session"] != "abc" || cookies["k"] != "v" {
+		t.Fatalf("cookies=%v", cookies)
+	}
+	if _, err := parseCookies([]string{"broken"}); err == nil {
+		t.Fatalf("expected error")
+	}
+}
+
 func TestParseHeaders(t *testing.T) {
 	headers, err := parseHeaders([]string{"A: B", "X-Test: 1"})
 	if err != nil {
