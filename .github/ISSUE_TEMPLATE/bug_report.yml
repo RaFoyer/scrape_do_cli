@@ -2,6 +2,10 @@ name: Bug report
 description: Report a reproducible problem
 labels: [bug]
 body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for filing a bug report. Please redact secrets/tokens from all examples.
   - type: textarea
     id: summary
     attributes:
@@ -31,6 +35,12 @@ body:
       label: Actual Behavior
     validations:
       required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Sanitized Output
+      description: Include relevant command output/error text (remove secrets)
+      render: shell
   - type: input
     id: version
     attributes:
@@ -45,3 +55,12 @@ body:
       placeholder: macOS/Linux/Windows, shell, Go version
     validations:
       required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Pre-flight
+      options:
+        - label: I searched existing issues for duplicates
+          required: true
+        - label: I removed API keys and sensitive data from this report
+          required: true

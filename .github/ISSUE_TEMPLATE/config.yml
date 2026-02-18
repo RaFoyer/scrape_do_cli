@@ -1,5 +1,8 @@
 blank_issues_enabled: false
 contact_links:
+  - name: Questions and usage help
+    url: https://github.com/RaFoyer/scrape_do_cli/issues/new/choose
+    about: Use issue templates to ask usage questions or request help
   - name: Security report
     url: https://github.com/RaFoyer/scrape_do_cli/security/advisories/new
     about: Report vulnerabilities privately

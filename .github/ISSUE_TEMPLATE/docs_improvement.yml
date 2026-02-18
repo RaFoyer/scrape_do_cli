@@ -1,0 +1,23 @@
+name: Docs improvement
+description: Propose improvements to docs/help/examples
+labels: [documentation]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is unclear?
+      description: Which docs/help text caused confusion?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed docs change
+      description: What should be added/changed?
+    validations:
+      required: true
+  - type: textarea
+    id: references
+    attributes:
+      label: Relevant command or file references
+      description: e.g. `sdo scrape --help`, `README.md`
