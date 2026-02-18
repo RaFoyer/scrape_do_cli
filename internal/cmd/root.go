@@ -37,7 +37,8 @@ type CLI struct {
 	Scrape     ScrapeCmd             `cmd:"" help:"Scrape a URL via sync API"`
 	Async      AsyncCmd              `cmd:"" help:"Asynchronous scrape API commands"`
 	Plugin     PluginCmd             `cmd:"" help:"Plugin endpoint commands"`
-	Info       InfoCmd               `cmd:"" help:"Get account usage statistics"`
+	Info       InfoCmd               `cmd:"" aliases:"stats,usage" help:"Get account usage statistics"`
+	Docs       DocsCmd               `cmd:"" help:"Show endpoint coverage and quick usage examples"`
 	Config     ConfigCmd             `cmd:"" help:"Manage local configuration"`
 	VersionCmd VersionCmd            `cmd:"" name:"version" help:"Print version"`
 	Completion CompletionCmd         `cmd:"" help:"Generate shell completion scripts"`
@@ -157,7 +158,7 @@ func resolveRuntime(kctx *kong.Context, flags *RootFlags, cfg config.File) (runt
 	runtime := runtimeOptions{
 		Token:        resolveString(flagProvided(kctx, "token"), flags.Token, "SCRAPEDO_TOKEN", cfg.Token, ""),
 		BaseURL:      resolveString(flagProvided(kctx, "base-url"), flags.BaseURL, "SCRAPEDO_BASE_URL", cfg.BaseURL, "https://api.scrape.do"),
-		AsyncBaseURL: resolveString(flagProvided(kctx, "async-base-url"), flags.AsyncBaseURL, "SCRAPEDO_ASYNC_BASE_URL", cfg.AsyncBaseURL, "https://async.scrape.do"),
+		AsyncBaseURL: resolveString(flagProvided(kctx, "async-base-url"), flags.AsyncBaseURL, "SCRAPEDO_ASYNC_BASE_URL", cfg.AsyncBaseURL, "https://q.scrape.do"),
 		JSON:         resolveBool(flagProvided(kctx, "json"), flags.JSON, "SCRAPEDO_JSON", cfg.DefaultOutput == "json", false),
 		Plain:        resolveBool(flagProvided(kctx, "plain"), flags.Plain, "SCRAPEDO_PLAIN", cfg.DefaultOutput == "plain", false),
 		ResultsOnly:  flags.ResultsOnly,

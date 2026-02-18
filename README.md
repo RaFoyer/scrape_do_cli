@@ -1,20 +1,22 @@
 # sdo
 
-Scrape.do CLI wrapper inspired by gogcli architecture.
+`sdo` is a practical CLI wrapper for Scrape.do APIs.
 
-## Features
+## What it covers
 
-- Sync scrape command for `api.scrape.do`
-- Async submit/status/wait commands for async jobs
-- Generic plugin endpoint runner
-- Account usage info command (`/info`)
-- Local config management
-- JSON/plain output modes with JSON field selection
-- Shell completion and command schema output
+- Sync API (`https://api.scrape.do`)
+  - `GET/POST /` via `sdo scrape`
+  - `GET /info` via `sdo info`
+  - `GET /plugin/{path}` via `sdo plugin run`
+- Async API (`https://q.scrape.do`, `X-Token` auth)
+  - `POST /api/v1/jobs` via `sdo async submit`
+  - `GET /api/v1/jobs` via `sdo async list`
+  - `GET /api/v1/jobs/{job_id}` via `sdo async status`
+  - `GET /api/v1/jobs/{job_id}/{task_id}` via `sdo async task`
+  - `DELETE /api/v1/jobs/{job_id}` via `sdo async cancel`
+  - `GET /api/v1/me` via `sdo async me`
 
 ## Install
-
-Build locally:
 
 ```bash
 make build
@@ -25,9 +27,9 @@ make build
 
 Token resolution priority:
 
-1. CLI flag `--token`
-2. Env var `SCRAPEDO_TOKEN`
-3. Config file key `token`
+1. `--token`
+2. `SCRAPEDO_TOKEN`
+3. Config key `token`
 
 Set token once:
 
@@ -40,27 +42,46 @@ sdo config set token YOUR_TOKEN
 Sync scrape:
 
 ```bash
-sdo scrape https://httpbin.co/anything --render --super --geo us
+sdo scrape https://httpbin.co/anything --geo us
+sdo scrape https://httpbin.co/anything --render --wait-until domcontentloaded
+sdo scrape https://httpbin.co/anything --method POST --body '{"hello":"world"}' --content-type application/json
 ```
 
-Async submit + wait:
+Target headers/cookies:
 
 ```bash
-sdo async submit https://example.com --render
-sdo async wait <job_id>
-sdo async wait <job_id> --wait-timeout 3m --interval 3s
+sdo scrape https://httpbin.co/anything --header 'User-Agent: my-agent' --custom-headers
+sdo scrape https://httpbin.co/anything --set-cookie session=abc123
 ```
 
 Plugin run:
 
 ```bash
-sdo plugin run amazon/pdp --url https://www.amazon.com/dp/B08N5WRWNW --param country=us
+sdo plugin run amazon/pdp \
+  --url https://www.amazon.com/dp/B08N5WRWNW \
+  --param asin=B08N5WRWNW \
+  --param geocode=us \
+  --param countryName='United States'
 ```
 
-Info:
+Async:
 
 ```bash
-sdo info
+sdo async me --json
+sdo async submit https://example.com --render
+sdo async list --page 1 --page-size 20
+sdo async status <job_id>
+sdo async task <job_id> <task_id>
+sdo async wait <job_id> --wait-timeout 3m --interval 3s
+sdo async cancel <job_id>
+```
+
+Discoverability:
+
+```bash
+sdo docs
+sdo docs --json
+sdo <command> --help
 ```
 
 Machine output:
@@ -86,29 +107,24 @@ sdo --json scrape https://example.com --select status_code,sdo_headers.scrape.do
 - `SCRAPEDO_TIMEOUT`
 - `SCRAPEDO_JSON`
 - `SCRAPEDO_PLAIN`
-- `SCRAPEDO_CONFIG_DIR` (optional override for config file directory)
+- `SCRAPEDO_CONFIG_DIR` (optional override for config directory)
 
 ## Async host override
 
-If `async.scrape.do` cannot be resolved in your network:
+If your network cannot resolve the default async host:
 
 ```bash
 sdo --async-base-url https://your-async-host async status <job_id>
-```
-
-or set:
-
-```bash
 export SCRAPEDO_ASYNC_BASE_URL=https://your-async-host
 ```
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for development workflow, PR expectations, and testing requirements.
+See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Security
 
-See [SECURITY.md](SECURITY.md) for private vulnerability reporting.
+See [SECURITY.md](SECURITY.md).
 
 ## License
 

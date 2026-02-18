@@ -10,13 +10,14 @@ import (
 	"net/url"
 	"path"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 )
 
 const (
 	defaultBaseURL      = "https://api.scrape.do"
-	defaultAsyncBaseURL = "https://async.scrape.do"
+	defaultAsyncBaseURL = "https://q.scrape.do"
 )
 
 func New(opts Options) *Client {
@@ -53,6 +54,28 @@ func (c *Client) Scrape(ctx context.Context, req ScrapeRequest) (*APIResponse, e
 	addOptionalString(params, "device", req.Device)
 	addOptionalString(params, "output", req.Output)
 	addOptionalString(params, "callback", req.Callback)
+	addOptionalBool(params, "customHeaders", req.CustomHeaders)
+	addOptionalBool(params, "forwardHeaders", req.ForwardHeaders)
+	addOptionalBool(params, "disableRedirection", req.DisableRedirection)
+	addOptionalBool(params, "disableRetry", req.DisableRetry)
+	addOptionalBool(params, "transparentResponse", req.TransparentResponse)
+	addOptionalBool(params, "blockResources", req.BlockResources)
+	addOptionalBool(params, "screenShot", req.Screenshot)
+	addOptionalBool(params, "fullScreenShot", req.FullScreenshot)
+	addOptionalBool(params, "returnJSON", req.ReturnJSON)
+	addOptionalBool(params, "showWebsocketRequests", req.ShowWebsocketRequests)
+	addOptionalBool(params, "showFrames", req.ShowFrames)
+	addOptionalString(params, "waitUntil", req.WaitUntil)
+	addOptionalString(params, "waitSelector", req.WaitSelector)
+	addOptionalString(params, "particularScreenShot", req.ParticularScreenshot)
+	addOptionalInt(params, "customWait", req.CustomWait)
+	addOptionalInt(params, "timeout", req.RequestTimeoutMS)
+	addOptionalInt(params, "retryTimeout", req.RetryTimeoutMS)
+
+	if len(req.SetCookies) > 0 {
+		params["setCookies"] = cookiesString(req.SetCookies)
+	}
+
 	mergeParams(params, req.Params)
 
 	headers := map[string]string{}
@@ -64,12 +87,30 @@ func (c *Client) Scrape(ctx context.Context, req ScrapeRequest) (*APIResponse, e
 		}
 	}
 
-	return c.get(ctx, c.baseURL+"/", params, headers)
+	method := strings.ToUpper(strings.TrimSpace(req.Method))
+	if method == "" {
+		method = http.MethodGet
+	}
+	body := strings.TrimSpace(req.Body)
+	if method == http.MethodGet && body != "" {
+		return nil, fmt.Errorf("GET method does not support body")
+	}
+
+	var bodyReader io.Reader
+	if body != "" {
+		bodyReader = strings.NewReader(body)
+	}
+
+	if strings.TrimSpace(req.ContentType) != "" {
+		headers["content-type"] = strings.TrimSpace(req.ContentType)
+	}
+
+	return c.request(ctx, method, c.baseURL+"/", params, headers, bodyReader)
 }
 
 func (c *Client) Info(ctx context.Context) (*APIResponse, error) {
 	params := map[string]string{"token": c.token}
-	return c.get(ctx, c.baseURL+"/info", params, nil)
+	return c.request(ctx, http.MethodGet, c.baseURL+"/info", params, nil, nil)
 }
 
 func (c *Client) PluginRun(ctx context.Context, req PluginRequest) (*APIResponse, error) {
@@ -81,6 +122,7 @@ func (c *Client) PluginRun(ctx context.Context, req PluginRequest) (*APIResponse
 	if pluginPath == "" {
 		return nil, fmt.Errorf("empty plugin path")
 	}
+
 	params := map[string]string{
 		"token": c.token,
 		"url":   req.URL,
@@ -97,42 +139,147 @@ func (c *Client) PluginRun(ctx context.Context, req PluginRequest) (*APIResponse
 	}
 
 	endpoint := c.baseURL + "/" + path.Join("plugin", pluginPath)
-	return c.get(ctx, endpoint, params, headers)
+	return c.request(ctx, http.MethodGet, endpoint, params, headers, nil)
 }
 
-func (c *Client) AsyncSubmit(ctx context.Context, req AsyncSubmitRequest) (*APIResponse, error) {
-	payload := map[string]any{"url": req.URL}
-	if req.Render {
-		payload["render"] = true
+func (c *Client) AsyncCreateJob(ctx context.Context, req AsyncCreateJobRequest) (*APIResponse, error) {
+	payload := map[string]any{}
+	if len(req.Targets) > 0 {
+		payload["Targets"] = req.Targets
 	}
+	if req.Method != "" {
+		payload["Method"] = strings.ToUpper(strings.TrimSpace(req.Method))
+	}
+	addOptionalPayloadString(payload, "Body", req.Body)
+	addOptionalPayloadString(payload, "GeoCode", req.GeoCode)
+	addOptionalPayloadString(payload, "RegionalGeoCode", req.RegionalGeoCode)
 	if req.Super {
-		payload["super"] = true
+		payload["Super"] = true
 	}
-	addOptionalPayloadString(payload, "geoCode", req.Geo)
-	addOptionalPayloadString(payload, "regionalGeoCode", req.RegionalGeo)
-	addOptionalPayloadString(payload, "sessionId", req.SessionID)
-	addOptionalPayloadString(payload, "device", req.Device)
-	addOptionalPayloadString(payload, "output", req.Output)
-	addOptionalPayloadString(payload, "callback", req.Callback)
+	if len(req.Headers) > 0 {
+		payload["Headers"] = req.Headers
+	}
+	if req.ForwardHeaders {
+		payload["ForwardHeaders"] = true
+	}
+	addOptionalPayloadString(payload, "SessionID", req.SessionID)
+	addOptionalPayloadString(payload, "Device", req.Device)
+	if len(req.SetCookies) > 0 {
+		payload["SetCookies"] = req.SetCookies
+	}
+	addOptionalPayloadInt(payload, "Timeout", req.Timeout)
+	addOptionalPayloadInt(payload, "RetryTimeout", req.RetryTimeout)
+	if req.DisableRetry {
+		payload["DisableRetry"] = true
+	}
+	if req.TransparentResponse {
+		payload["TransparentResponse"] = true
+	}
+	if req.DisableRedirection {
+		payload["DisableRedirection"] = true
+	}
+	addOptionalPayloadString(payload, "Output", req.Output)
+
+	renderPayload := map[string]any{}
+	if req.Render {
+		renderPayload["Enabled"] = true
+	}
+	addOptionalPayloadString(renderPayload, "WaitUntil", req.WaitUntil)
+	addOptionalPayloadInt(renderPayload, "CustomWait", req.CustomWait)
+	addOptionalPayloadString(renderPayload, "WaitSelector", req.WaitSelector)
+	if req.BlockResources {
+		renderPayload["BlockResources"] = true
+	}
+	if req.ReturnJSON {
+		renderPayload["ReturnJSON"] = true
+	}
+	if req.ShowWebsocketRequests {
+		renderPayload["ShowWebsocketRequests"] = true
+	}
+	if req.ShowFrames {
+		renderPayload["ShowFrames"] = true
+	}
+	if req.Screenshot {
+		renderPayload["ScreenShot"] = true
+	}
+	if req.FullScreenshot {
+		renderPayload["FullScreenShot"] = true
+	}
+	addOptionalPayloadString(renderPayload, "ParticularScreenShot", req.ParticularScreenshot)
+	if len(renderPayload) > 0 {
+		if len(renderPayload) == 1 {
+			if enabled, ok := renderPayload["Enabled"].(bool); ok {
+				payload["Render"] = enabled
+			} else {
+				payload["Render"] = renderPayload
+			}
+		} else {
+			delete(renderPayload, "Enabled")
+			payload["Render"] = renderPayload
+		}
+	}
+
+	if req.WebhookURL != "" {
+		payload["WebHook"] = map[string]any{
+			"URL":     req.WebhookURL,
+			"Headers": req.WebhookHeaders,
+		}
+	}
+
 	for k, v := range req.Params {
 		payload[k] = v
 	}
 
-	return c.postJSON(ctx, c.asyncBaseURL+"/job", payload, map[string]string{
-		"x-api-key": c.token,
-	})
+	endpoint := c.asyncBaseURL + "/api/v1/jobs"
+	return c.postJSON(ctx, endpoint, payload, map[string]string{"X-Token": c.token})
 }
 
-func (c *Client) AsyncStatus(ctx context.Context, jobID string) (*APIResponse, error) {
+func (c *Client) AsyncGetJob(ctx context.Context, jobID string) (*APIResponse, error) {
 	jobID = strings.TrimSpace(jobID)
 	if jobID == "" {
 		return nil, fmt.Errorf("empty job id")
 	}
-	endpoint := c.asyncBaseURL + "/job/" + url.PathEscape(jobID)
-	return c.get(ctx, endpoint, nil, map[string]string{"x-api-key": c.token})
+	endpoint := c.asyncBaseURL + "/api/v1/jobs/" + url.PathEscape(jobID)
+	return c.request(ctx, http.MethodGet, endpoint, nil, map[string]string{"X-Token": c.token}, nil)
 }
 
-func (c *Client) get(ctx context.Context, endpoint string, params map[string]string, headers map[string]string) (*APIResponse, error) {
+func (c *Client) AsyncGetTask(ctx context.Context, jobID string, taskID string) (*APIResponse, error) {
+	jobID = strings.TrimSpace(jobID)
+	taskID = strings.TrimSpace(taskID)
+	if jobID == "" || taskID == "" {
+		return nil, fmt.Errorf("job id and task id are required")
+	}
+	endpoint := c.asyncBaseURL + "/api/v1/jobs/" + url.PathEscape(jobID) + "/" + url.PathEscape(taskID)
+	return c.request(ctx, http.MethodGet, endpoint, nil, map[string]string{"X-Token": c.token}, nil)
+}
+
+func (c *Client) AsyncListJobs(ctx context.Context, page int, pageSize int) (*APIResponse, error) {
+	params := map[string]string{}
+	if page > 0 {
+		params["page"] = strconv.Itoa(page)
+	}
+	if pageSize > 0 {
+		params["page_size"] = strconv.Itoa(pageSize)
+	}
+	endpoint := c.asyncBaseURL + "/api/v1/jobs"
+	return c.request(ctx, http.MethodGet, endpoint, params, map[string]string{"X-Token": c.token}, nil)
+}
+
+func (c *Client) AsyncCancelJob(ctx context.Context, jobID string) (*APIResponse, error) {
+	jobID = strings.TrimSpace(jobID)
+	if jobID == "" {
+		return nil, fmt.Errorf("empty job id")
+	}
+	endpoint := c.asyncBaseURL + "/api/v1/jobs/" + url.PathEscape(jobID)
+	return c.request(ctx, http.MethodDelete, endpoint, nil, map[string]string{"X-Token": c.token}, nil)
+}
+
+func (c *Client) AsyncMe(ctx context.Context) (*APIResponse, error) {
+	endpoint := c.asyncBaseURL + "/api/v1/me"
+	return c.request(ctx, http.MethodGet, endpoint, nil, map[string]string{"X-Token": c.token}, nil)
+}
+
+func (c *Client) request(ctx context.Context, method string, endpoint string, params map[string]string, headers map[string]string, body io.Reader) (*APIResponse, error) {
 	u, err := url.Parse(endpoint)
 	if err != nil {
 		return nil, fmt.Errorf("parse endpoint: %w", err)
@@ -142,7 +289,8 @@ func (c *Client) get(ctx context.Context, endpoint string, params map[string]str
 		q.Set(key, params[key])
 	}
 	u.RawQuery = q.Encode()
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+
+	req, err := http.NewRequestWithContext(ctx, method, u.String(), body)
 	if err != nil {
 		return nil, fmt.Errorf("build request: %w", err)
 	}
@@ -157,15 +305,9 @@ func (c *Client) postJSON(ctx context.Context, endpoint string, payload map[stri
 	if err != nil {
 		return nil, fmt.Errorf("encode payload: %w", err)
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(b))
-	if err != nil {
-		return nil, fmt.Errorf("build request: %w", err)
-	}
-	req.Header.Set("content-type", "application/json")
-	for _, key := range sortedKeys(headers) {
-		req.Header.Set(key, headers[key])
-	}
-	return c.do(req)
+	headers = copyStringMap(headers)
+	headers["content-type"] = "application/json"
+	return c.request(ctx, http.MethodPost, endpoint, nil, headers, bytes.NewReader(b))
 }
 
 func (c *Client) do(req *http.Request) (*APIResponse, error) {
@@ -240,6 +382,12 @@ func addOptionalBool(m map[string]string, key string, value bool) {
 	}
 }
 
+func addOptionalInt(m map[string]string, key string, value int) {
+	if value > 0 {
+		m[key] = strconv.Itoa(value)
+	}
+}
+
 func addOptionalString(m map[string]string, key string, value string) {
 	value = strings.TrimSpace(value)
 	if value != "" {
@@ -250,6 +398,12 @@ func addOptionalString(m map[string]string, key string, value string) {
 func addOptionalPayloadString(m map[string]any, key string, value string) {
 	value = strings.TrimSpace(value)
 	if value != "" {
+		m[key] = value
+	}
+}
+
+func addOptionalPayloadInt(m map[string]any, key string, value int) {
+	if value > 0 {
 		m[key] = value
 	}
 }
@@ -272,10 +426,37 @@ func sortedKeys(m map[string]string) []string {
 	return keys
 }
 
+func copyStringMap(in map[string]string) map[string]string {
+	out := make(map[string]string, len(in))
+	for k, v := range in {
+		out[k] = v
+	}
+	return out
+}
+
+func cookiesString(cookies map[string]string) string {
+	if len(cookies) == 0 {
+		return ""
+	}
+	keys := make([]string, 0, len(cookies))
+	for k := range cookies {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	pairs := make([]string, 0, len(keys))
+	for _, k := range keys {
+		pairs = append(pairs, fmt.Sprintf("%s=%s", k, cookies[k]))
+	}
+	return strings.Join(pairs, ";") + ";"
+}
+
 func messageFromBody(body any) string {
 	switch v := body.(type) {
 	case map[string]any:
 		if msg := readStringSlice(v["Message"]); msg != "" {
+			return msg
+		}
+		if msg := readStringSlice(v["Error"]); msg != "" {
 			return msg
 		}
 		for _, k := range []string{"message", "error", "detail", "status"} {
