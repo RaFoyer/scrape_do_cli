@@ -5,7 +5,7 @@
 ## What it covers
 
 - Sync API (`https://api.scrape.do`)
-  - `GET/POST /` via `sdo scrape`
+  - `GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS /` via `sdo scrape`
   - `GET /info` via `sdo info`
   - `GET /plugin/{path}` via `sdo plugin run`
 - Async API (`https://q.scrape.do`, `X-Token` auth)
@@ -45,6 +45,8 @@ Sync scrape:
 sdo scrape https://httpbin.co/anything --geo us
 sdo scrape https://httpbin.co/anything --render --wait-until domcontentloaded
 sdo scrape https://httpbin.co/anything --method POST --body '{"hello":"world"}' --content-type application/json
+sdo scrape https://example.com --render --width 1366 --height 768
+sdo scrape https://example.com --play-with-browser '[{"Action":"WaitSelector","WaitSelector":"body"}]' --return-json
 ```
 
 Target headers/cookies:
@@ -69,6 +71,7 @@ Async:
 ```bash
 sdo async me --json
 sdo async submit https://example.com --render
+sdo async submit https://example.com --render --webhook-url https://example.com/callback --webhook-header 'Authorization: Bearer x'
 sdo async list --page 1 --page-size 20
 sdo async status <job_id>
 sdo async task <job_id> <task_id>

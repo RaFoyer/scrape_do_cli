@@ -67,7 +67,10 @@ func (c *Client) Scrape(ctx context.Context, req ScrapeRequest) (*APIResponse, e
 	addOptionalBool(params, "showFrames", req.ShowFrames)
 	addOptionalString(params, "waitUntil", req.WaitUntil)
 	addOptionalString(params, "waitSelector", req.WaitSelector)
+	addOptionalInt(params, "width", req.Width)
+	addOptionalInt(params, "height", req.Height)
 	addOptionalString(params, "particularScreenShot", req.ParticularScreenshot)
+	addOptionalString(params, "playWithBrowser", req.PlayWithBrowser)
 	addOptionalInt(params, "customWait", req.CustomWait)
 	addOptionalInt(params, "timeout", req.RequestTimeoutMS)
 	addOptionalInt(params, "retryTimeout", req.RetryTimeoutMS)
@@ -187,6 +190,8 @@ func (c *Client) AsyncCreateJob(ctx context.Context, req AsyncCreateJobRequest) 
 	addOptionalPayloadString(renderPayload, "WaitUntil", req.WaitUntil)
 	addOptionalPayloadInt(renderPayload, "CustomWait", req.CustomWait)
 	addOptionalPayloadString(renderPayload, "WaitSelector", req.WaitSelector)
+	addOptionalPayloadInt(renderPayload, "Width", req.Width)
+	addOptionalPayloadInt(renderPayload, "Height", req.Height)
 	if req.BlockResources {
 		renderPayload["BlockResources"] = true
 	}
@@ -206,6 +211,9 @@ func (c *Client) AsyncCreateJob(ctx context.Context, req AsyncCreateJobRequest) 
 		renderPayload["FullScreenShot"] = true
 	}
 	addOptionalPayloadString(renderPayload, "ParticularScreenShot", req.ParticularScreenshot)
+	if req.PlayWithBrowser != nil {
+		renderPayload["PlayWithBrowser"] = req.PlayWithBrowser
+	}
 	if len(renderPayload) > 0 {
 		if len(renderPayload) == 1 {
 			if enabled, ok := renderPayload["Enabled"].(bool); ok {
@@ -220,9 +228,9 @@ func (c *Client) AsyncCreateJob(ctx context.Context, req AsyncCreateJobRequest) 
 	}
 
 	if req.WebhookURL != "" {
-		payload["WebHook"] = map[string]any{
-			"URL":     req.WebhookURL,
-			"Headers": req.WebhookHeaders,
+		payload["WebhookURL"] = req.WebhookURL
+		if len(req.WebhookHeaders) > 0 {
+			payload["WebhookHeaders"] = req.WebhookHeaders
 		}
 	}
 
