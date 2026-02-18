@@ -39,10 +39,13 @@ type ScrapeRequest struct {
 	WaitUntil             string
 	CustomWait            int
 	WaitSelector          string
+	Width                 int
+	Height                int
 	BlockResources        bool
 	Screenshot            bool
 	FullScreenshot        bool
 	ParticularScreenshot  string
+	PlayWithBrowser       string
 	ReturnJSON            bool
 	ShowWebsocketRequests bool
 	ShowFrames            bool
@@ -82,6 +85,8 @@ type AsyncCreateJobRequest struct {
 	WaitUntil             string
 	CustomWait            int
 	WaitSelector          string
+	Width                 int
+	Height                int
 	BlockResources        bool
 	ReturnJSON            bool
 	ShowWebsocketRequests bool
@@ -89,6 +94,7 @@ type AsyncCreateJobRequest struct {
 	Screenshot            bool
 	FullScreenshot        bool
 	ParticularScreenshot  string
+	PlayWithBrowser       any
 	WebhookURL            string
 	WebhookHeaders        map[string]string
 	Params                map[string]string

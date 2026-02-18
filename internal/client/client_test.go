@@ -78,6 +78,24 @@ func TestScrape(t *testing.T) {
 	}
 }
 
+func TestScrape_NoContentTypeWhenEmpty(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if got := r.Header.Get("content-type"); got != "" {
+			t.Fatalf("unexpected content-type=%q", got)
+		}
+		_, _ = w.Write([]byte(`{"ok":true}`))
+	}))
+	defer ts.Close()
+
+	c := New(Options{Token: "tok", BaseURL: ts.URL, AsyncBaseURL: ts.URL})
+	if _, err := c.Scrape(context.Background(), ScrapeRequest{
+		Method: "GET",
+		URL:    "https://example.com",
+	}); err != nil {
+		t.Fatalf("Scrape: %v", err)
+	}
+}
+
 func TestInfoAndPluginRun(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
@@ -129,6 +147,23 @@ func TestAsyncEndpoints(t *testing.T) {
 			if _, ok := payload["Targets"].([]any); !ok {
 				t.Fatalf("payload=%v", payload)
 			}
+			if payload["WebhookURL"] != "https://example.com/webhook" {
+				t.Fatalf("payload=%v", payload)
+			}
+			headers, ok := payload["WebhookHeaders"].(map[string]any)
+			if !ok || headers["x-test"] != "1" {
+				t.Fatalf("payload=%v", payload)
+			}
+			render, ok := payload["Render"].(map[string]any)
+			if !ok {
+				t.Fatalf("payload=%v", payload)
+			}
+			if render["Width"] != float64(1366) || render["Height"] != float64(768) {
+				t.Fatalf("payload=%v", payload)
+			}
+			if _, ok := render["PlayWithBrowser"].([]any); !ok {
+				t.Fatalf("payload=%v", payload)
+			}
 			_, _ = w.Write([]byte(`{"JobID":"1","Status":"pending"}`))
 		case r.Method == http.MethodGet && r.URL.Path == "/api/v1/jobs":
 			_, _ = w.Write([]byte(`{"Jobs":[]}`))
@@ -147,7 +182,17 @@ func TestAsyncEndpoints(t *testing.T) {
 	defer ts.Close()
 	c := New(Options{Token: "tok", BaseURL: ts.URL, AsyncBaseURL: ts.URL})
 
-	if _, err := c.AsyncCreateJob(context.Background(), AsyncCreateJobRequest{Targets: []string{"https://example.com"}, Render: true}); err != nil {
+	if _, err := c.AsyncCreateJob(context.Background(), AsyncCreateJobRequest{
+		Targets: []string{"https://example.com"},
+		Render:  true,
+		Width:   1366,
+		Height:  768,
+		PlayWithBrowser: []map[string]any{
+			{"Action": "WaitSelector", "WaitSelector": "body"},
+		},
+		WebhookURL:     "https://example.com/webhook",
+		WebhookHeaders: map[string]string{"x-test": "1"},
+	}); err != nil {
 		t.Fatalf("AsyncCreateJob: %v", err)
 	}
 	if _, err := c.AsyncListJobs(context.Background(), 1, 10); err != nil {

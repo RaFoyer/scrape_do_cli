@@ -15,7 +15,7 @@ func (c *DocsCmd) Run(ctx context.Context) error {
 		"sync_api": map[string]any{
 			"base_url": "https://api.scrape.do",
 			"endpoints": []string{
-				"GET/POST /",
+				"GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS /",
 				"GET /info",
 				"GET /plugin/{path}",
 			},
@@ -36,9 +36,11 @@ func (c *DocsCmd) Run(ctx context.Context) error {
 			"sdo info --json",
 			"sdo scrape https://example.com --geo us --render",
 			"sdo scrape https://example.com --method POST --body '{\"q\":\"x\"}' --content-type application/json",
+			"sdo scrape https://example.com --render --width 1366 --height 768",
+			"sdo scrape https://example.com --play-with-browser '[{\"Action\":\"WaitSelector\",\"WaitSelector\":\"body\"}]' --return-json",
 			"sdo plugin run amazon/pdp --url https://www.amazon.com/dp/B08N5WRWNW --param asin=B08N5WRWNW --param geocode=us --param countryName='United States'",
 			"sdo async me --json",
-			"sdo async submit https://example.com --render",
+			"sdo async submit https://example.com --render --webhook-url https://example.com/callback",
 			"sdo async list --page 1 --page-size 20",
 			"sdo async status <job_id>",
 			"sdo async task <job_id> <task_id>",
@@ -54,7 +56,7 @@ func (c *DocsCmd) Run(ctx context.Context) error {
 	fmt.Fprintln(os.Stdout, "sdo endpoint coverage")
 	fmt.Fprintln(os.Stdout, "")
 	fmt.Fprintln(os.Stdout, "Sync API (https://api.scrape.do)")
-	fmt.Fprintln(os.Stdout, "  - GET/POST /")
+	fmt.Fprintln(os.Stdout, "  - GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS /")
 	fmt.Fprintln(os.Stdout, "  - GET /info")
 	fmt.Fprintln(os.Stdout, "  - GET /plugin/{path}")
 	fmt.Fprintln(os.Stdout, "")

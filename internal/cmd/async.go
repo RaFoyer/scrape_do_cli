@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -45,6 +46,8 @@ type AsyncSubmitCmd struct {
 	WaitUntil             string   `name:"wait-until" help:"Render waitUntil mode"`
 	CustomWait            int      `name:"custom-wait" help:"Render custom wait in milliseconds"`
 	WaitSelector          string   `name:"wait-selector" help:"Render wait for CSS selector"`
+	Width                 int      `name:"width" help:"Render viewport width in pixels"`
+	Height                int      `name:"height" help:"Render viewport height in pixels"`
 	BlockResources        bool     `name:"block-resources" help:"Block non-essential resources during render"`
 	ReturnJSON            bool     `name:"return-json" help:"Return JSON render payload"`
 	ShowWebsocketRequests bool     `name:"show-websocket-requests" help:"Include websocket request details in render output"`
@@ -52,6 +55,8 @@ type AsyncSubmitCmd struct {
 	Screenshot            bool     `name:"screenshot" help:"Capture viewport screenshot"`
 	FullScreenshot        bool     `name:"full-screenshot" help:"Capture full page screenshot"`
 	ParticularScreenshot  string   `name:"particular-screenshot" help:"Capture screenshot for a CSS selector"`
+	PlayWithBrowser       string   `name:"play-with-browser" help:"PlayWithBrowser actions as JSON array/object"`
+	PlayWithBrowserFile   string   `name:"play-with-browser-file" help:"Read PlayWithBrowser JSON from file"`
 	WebhookURL            string   `name:"webhook-url" help:"Webhook URL for async completion callback"`
 	WebhookHeader         []string `name:"webhook-header" help:"Webhook header (format: 'Key: Value')"`
 	Param                 []string `name:"param" help:"Additional payload field (key=value)"`
@@ -84,6 +89,14 @@ func (c *AsyncSubmitCmd) Run(ctx context.Context) error {
 	if method == "GET" && strings.TrimSpace(body) != "" {
 		return usage("GET method does not support body; use --method POST/PUT/PATCH/DELETE")
 	}
+	playWithBrowserRaw, err := readJSONInput(c.PlayWithBrowser, c.PlayWithBrowserFile, "--play-with-browser", "--play-with-browser-file")
+	if err != nil {
+		return err
+	}
+	playWithBrowser, err := parseJSONAny(playWithBrowserRaw, "--play-with-browser")
+	if err != nil {
+		return err
+	}
 	params, err := parseParams(c.Param)
 	if err != nil {
 		return err
@@ -103,6 +116,9 @@ func (c *AsyncSubmitCmd) Run(ctx context.Context) error {
 
 	if c.RequestTimeoutMS < 0 || c.RetryTimeoutMS < 0 || c.CustomWait < 0 {
 		return usage("timeout values must be non-negative")
+	}
+	if c.Width < 0 || c.Height < 0 {
+		return usage("--width and --height must be non-negative")
 	}
 
 	resp, err := newClientFromContext(ctx).AsyncCreateJob(ctx, client.AsyncCreateJobRequest{
@@ -127,6 +143,8 @@ func (c *AsyncSubmitCmd) Run(ctx context.Context) error {
 		WaitUntil:             c.WaitUntil,
 		CustomWait:            c.CustomWait,
 		WaitSelector:          c.WaitSelector,
+		Width:                 c.Width,
+		Height:                c.Height,
 		BlockResources:        c.BlockResources,
 		ReturnJSON:            c.ReturnJSON,
 		ShowWebsocketRequests: c.ShowWebsocketRequests,
@@ -134,6 +152,7 @@ func (c *AsyncSubmitCmd) Run(ctx context.Context) error {
 		Screenshot:            c.Screenshot,
 		FullScreenshot:        c.FullScreenshot,
 		ParticularScreenshot:  c.ParticularScreenshot,
+		PlayWithBrowser:       playWithBrowser,
 		WebhookURL:            c.WebhookURL,
 		WebhookHeaders:        webhookHeaders,
 		Params:                params,
@@ -304,4 +323,16 @@ func addAsyncDNSHint(err error) error {
 		return fmt.Errorf("%w (tip: set --async-base-url or SCRAPEDO_ASYNC_BASE_URL if your network cannot resolve q.scrape.do)", err)
 	}
 	return err
+}
+
+func parseJSONAny(raw string, flag string) (any, error) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return nil, nil
+	}
+	var out any
+	if err := json.Unmarshal([]byte(raw), &out); err != nil {
+		return nil, usagef("invalid JSON for %s: %v", flag, err)
+	}
+	return out, nil
 }
